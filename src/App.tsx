@@ -15,7 +15,6 @@ document.addEventListener("keyup", (e) => (window.keyState[e.key.toLowerCase()] 
 
 function PlayerCamera({ target }: { target: React.MutableRefObject<THREE.Mesh | null> }) {
   const camRef = useRef<THREE.PerspectiveCamera>(null);
-
   useFrame(() => {
     if (camRef.current && target.current) {
       const playerPos = target.current.position;
@@ -23,7 +22,6 @@ function PlayerCamera({ target }: { target: React.MutableRefObject<THREE.Mesh | 
       camRef.current.rotation.copy(target.current.rotation);
     }
   });
-
   return <PerspectiveCamera ref={camRef} makeDefault fov={75} />;
 }
 
@@ -44,9 +42,7 @@ const Player = forwardRef<THREE.Mesh>((_, ref) => {
     }
   });
 
-  return (
-    <mesh ref={meshRef} visible={false} position={[0, 0.5, 0]} />
-  );
+  return <mesh ref={meshRef} visible={false} position={[0, 0.5, 0]} />;
 });
 
 function LampPost({ position }: { position: [number, number, number] }) {
@@ -69,9 +65,7 @@ function Streets() {
   const asphalt = useLoader(THREE.TextureLoader, "/assets/asphalt.jpg");
   asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping;
   asphalt.repeat.set(1, 1);
-
   const elements = [];
-
   for (let i = -10; i <= 10; i++) {
     elements.push(
       <mesh key={`v-${i}`} position={[i * 5, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -85,29 +79,25 @@ function Streets() {
         <meshStandardMaterial map={asphalt} />
       </mesh>
     );
-    elements.push(
-      <mesh key={`line-v-${i}`} position={[i * 5, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.1, 200]} />
-        <meshStandardMaterial emissive="#fffac0" emissiveIntensity={1} color="#000" />
-      </mesh>
-    );
-    elements.push(
-      <mesh key={`line-h-${i}`} position={[0, 0.02, i * 5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[200, 0.1]} />
-        <meshStandardMaterial emissive="#fffac0" emissiveIntensity={1} color="#000" />
-      </mesh>
-    );
   }
-
   return <>{elements}</>;
 }
 
 function Building({ position, height }: { position: [number, number, number]; height: number }) {
-  const concrete = useLoader(THREE.TextureLoader, "/assets/concrete.jpg");
+  const textures = [
+    "/assets/concrete.jpg",
+    "/assets/building1.jpg",
+    "/assets/building2.jpg",
+    "/assets/building3.jpg",
+    "/assets/windows.jpg"
+  ];
+  const randomTexture = textures[Math.floor(Math.random() * textures.length)];
+  const texture = useLoader(THREE.TextureLoader, randomTexture);
+
   return (
     <mesh position={[position[0], height / 2, position[2]]} castShadow receiveShadow>
       <boxGeometry args={[3, height, 3]} />
-      <meshStandardMaterial map={concrete} />
+      <meshStandardMaterial map={texture} />
     </mesh>
   );
 }
@@ -122,6 +112,44 @@ function Buildings() {
     }
   }
   return <>{b}</>;
+}
+
+function Taxi({ speed }: { speed: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((_, delta) => {
+    if (ref.current) {
+      ref.current.position.x += speed * delta;
+      if (ref.current.position.x > 100) ref.current.position.x = -100;
+    }
+  });
+  return (
+    <mesh ref={ref} position={[-100 + Math.random() * 200, 0.25, Math.random() * 100 - 50]}>
+      <boxGeometry args={[2, 1, 1]} />
+      <meshStandardMaterial color="yellow" emissive="#ff0" emissiveIntensity={0.3} />
+    </mesh>
+  );
+}
+
+function Pedestrian({ speed }: { speed: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((_, delta) => {
+    if (ref.current) {
+      ref.current.position.z += speed * delta;
+      if (ref.current.position.z > 100) ref.current.position.z = -100;
+    }
+  });
+  return (
+    <mesh ref={ref} position={[Math.random() * 100 - 50, 0.5, -100 + Math.random() * 200]}>
+      <boxGeometry args={[0.5, 1, 0.5]} />
+      <meshStandardMaterial color="#f0f" />
+    </mesh>
+  );
+}
+
+function Traffic() {
+  const taxis = Array.from({ length: 10 }, (_, i) => <Taxi key={`taxi-${i}`} speed={2 + Math.random() * 2} />);
+  const people = Array.from({ length: 10 }, (_, i) => <Pedestrian key={`ped-${i}`} speed={1 + Math.random()} />);
+  return <>{[...taxis, ...people]}</>;
 }
 
 function Skyline() {
@@ -185,6 +213,7 @@ function Scene() {
       <Streets />
       <Buildings />
       <Skyline />
+      <Traffic />
       <LampPost position={[0, 0, 0]} />
       <Player ref={playerRef} />
     </Canvas>
