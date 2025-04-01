@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { PerspectiveCamera } from "@react-three/drei";
-import { forwardRef, useRef, useImperativeHandle, useEffect } from "react";
+import { PointerLockControls, PerspectiveCamera } from "@react-three/drei";
+import { forwardRef, useRef, useImperativeHandle, useEffect, useState } from "react";
 import * as THREE from "three";
 
 // Track keyboard input
@@ -14,15 +14,32 @@ document.addEventListener("keydown", (e) => (window.keyState[e.key.toLowerCase()
 document.addEventListener("keyup", (e) => (window.keyState[e.key.toLowerCase()] = false));
 
 function PlayerCamera({ target }: { target: React.MutableRefObject<THREE.Mesh | null> }) {
-  const camRef = useRef<THREE.PerspectiveCamera>(null);
-  useFrame(() => {
-    if (camRef.current && target.current) {
-      const playerPos = target.current.position;
-      camRef.current.position.copy(new THREE.Vector3(playerPos.x, playerPos.y + 0.6, playerPos.z));
-      camRef.current.rotation.copy(target.current.rotation);
+  const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+
+  useFrame((_, delta) => {
+    if (target.current && controlsRef.current) {
+      const direction = new THREE.Vector3();
+      const speed = 5 * delta;
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+      const right = new THREE.Vector3();
+      right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+      if (window.keyState["w"]) direction.add(forward);
+      if (window.keyState["s"]) direction.sub(forward);
+      if (window.keyState["a"]) direction.sub(right);
+      if (window.keyState["d"]) direction.add(right);
+
+      direction.normalize().multiplyScalar(speed);
+      target.current.position.add(direction);
+      camera.position.set(target.current.position.x, target.current.position.y + 0.6, target.current.position.z);
     }
   });
-  return <PerspectiveCamera ref={camRef} makeDefault fov={75} />;
+
+  return <PointerLockControls ref={controlsRef} />;
 }
 
 const Player = forwardRef<THREE.Mesh>((_, ref) => {
