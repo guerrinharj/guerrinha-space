@@ -130,12 +130,26 @@ function Skyline() {
   return <>{buildings}</>;
 }
 
+function CityBox() {
+  return (
+    <mesh position={[0, 50, 0]}>
+      <boxGeometry args={[500, 100, 500]} />
+      <meshStandardMaterial side={THREE.BackSide} color="#000010" />
+    </mesh>
+  );
+}
+
 function Skybox() {
   const { scene } = useThree();
   useEffect(() => {
     const loader = new THREE.CubeTextureLoader();
     const texture = loader.load([
-      "/assets/night-city.jpg"
+      "/skybox/space_bk.png",
+      "/skybox/space_dn.png",
+      "/skybox/space_ft.png",
+      "/skybox/space_lf.png",
+      "/skybox/space_rt.png",
+      "/skybox/space_up.png",
     ]);
     scene.background = texture;
   }, [scene]);
@@ -144,13 +158,12 @@ function Skybox() {
 
 function CameraFollow({ target }: { target: React.MutableRefObject<THREE.Object3D | null> }) {
   const camRef = useRef<THREE.PerspectiveCamera>(null);
-  const zoomRef = useRef(8); // starting distance
+  const zoomRef = useRef(8);
 
-  // Zoom handler
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       zoomRef.current += e.deltaY * 0.01;
-      zoomRef.current = Math.max(4, Math.min(20, zoomRef.current)); // clamp
+      zoomRef.current = Math.max(4, Math.min(20, zoomRef.current));
     };
     window.addEventListener("wheel", handleWheel);
     return () => window.removeEventListener("wheel", handleWheel);
@@ -164,7 +177,6 @@ function CameraFollow({ target }: { target: React.MutableRefObject<THREE.Object3
       camRef.current.lookAt(pos);
     }
   });
-
   return <PerspectiveCamera ref={camRef} makeDefault fov={60} />;
 }
 
@@ -176,6 +188,7 @@ function Scene() {
       <CameraFollow target={playerRef} />
       <ambientLight intensity={0.3} />
       <directionalLight position={[5, 10, 5]} castShadow intensity={1} />
+      <CityBox />
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[500, 500]} />
         <meshStandardMaterial color="#111" />
