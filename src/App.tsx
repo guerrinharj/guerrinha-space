@@ -1,6 +1,6 @@
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
-import { forwardRef, useRef, useImperativeHandle } from "react";
+import { forwardRef, useRef, useImperativeHandle, useEffect } from "react";
 import * as THREE from "three";
 
 // Track keyboard input
@@ -59,28 +59,28 @@ function Streets() {
 
   const elements = [];
 
-  for (let i = -3; i <= 3; i++) {
+  for (let i = -10; i <= 10; i++) {
     elements.push(
       <mesh key={`v-${i}`} position={[i * 5, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[4.5, 60]} />
+        <planeGeometry args={[4.5, 200]} />
         <meshStandardMaterial map={asphalt} />
       </mesh>
     );
     elements.push(
       <mesh key={`h-${i}`} position={[0, 0.01, i * 5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[60, 4.5]} />
+        <planeGeometry args={[200, 4.5]} />
         <meshStandardMaterial map={asphalt} />
       </mesh>
     );
     elements.push(
       <mesh key={`line-v-${i}`} position={[i * 5, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.1, 60]} />
+        <planeGeometry args={[0.1, 200]} />
         <meshStandardMaterial emissive="#fffac0" emissiveIntensity={1} color="#000" />
       </mesh>
     );
     elements.push(
       <mesh key={`line-h-${i}`} position={[0, 0.02, i * 5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[60, 0.1]} />
+        <planeGeometry args={[200, 0.1]} />
         <meshStandardMaterial emissive="#fffac0" emissiveIntensity={1} color="#000" />
       </mesh>
     );
@@ -101,8 +101,8 @@ function Building({ position, height }: { position: [number, number, number]; he
 
 function Buildings() {
   const b = [];
-  for (let i = -3; i <= 3; i++) {
-    for (let j = -3; j <= 3; j++) {
+  for (let i = -10; i <= 10; i++) {
+    for (let j = -10; j <= 10; j++) {
       if (i % 2 === 0 || j % 2 === 0) continue;
       const height = 4 + Math.random() * 10;
       b.push(<Building key={`${i}-${j}`} position={[i * 5, 0, j * 5]} height={height} />);
@@ -111,15 +111,60 @@ function Buildings() {
   return <>{b}</>;
 }
 
+function Skyline() {
+  const buildings = [];
+  const radius = 120;
+  const count = 100;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    const height = 20 + Math.random() * 60;
+    buildings.push(
+      <mesh key={i} position={[x, height / 2, z]}>
+        <boxGeometry args={[3 + Math.random() * 3, height, 3 + Math.random() * 3]} />
+        <meshStandardMaterial color="#111" emissive="#222" />
+      </mesh>
+    );
+  }
+  return <>{buildings}</>;
+}
+
+function Skybox() {
+  const { scene } = useThree();
+  useEffect(() => {
+    const loader = new THREE.CubeTextureLoader();
+    const texture = loader.load([
+      "/assets/night-city.jpg"
+    ]);
+    scene.background = texture;
+  }, [scene]);
+  return null;
+}
+
 function CameraFollow({ target }: { target: React.MutableRefObject<THREE.Object3D | null> }) {
   const camRef = useRef<THREE.PerspectiveCamera>(null);
+  const zoomRef = useRef(8); // starting distance
+
+  // Zoom handler
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      zoomRef.current += e.deltaY * 0.01;
+      zoomRef.current = Math.max(4, Math.min(20, zoomRef.current)); // clamp
+    };
+    window.addEventListener("wheel", handleWheel);
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, []);
+
   useFrame(() => {
     if (camRef.current && target.current) {
       const pos = target.current.position;
-      camRef.current.position.lerp(new THREE.Vector3(pos.x, pos.y + 5, pos.z + 8), 0.1);
+      const zoom = zoomRef.current;
+      camRef.current.position.lerp(new THREE.Vector3(pos.x, pos.y + zoom, pos.z + zoom), 0.1);
       camRef.current.lookAt(pos);
     }
   });
+
   return <PerspectiveCamera ref={camRef} makeDefault fov={60} />;
 }
 
@@ -127,15 +172,17 @@ function Scene() {
   const playerRef = useRef<THREE.Mesh>(null);
   return (
     <Canvas shadows>
+      <Skybox />
       <CameraFollow target={playerRef} />
       <ambientLight intensity={0.3} />
       <directionalLight position={[5, 10, 5]} castShadow intensity={1} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[200, 200]} />
+        <planeGeometry args={[500, 500]} />
         <meshStandardMaterial color="#111" />
       </mesh>
       <Streets />
       <Buildings />
+      <Skyline />
       <LampPost position={[0, 0, 0]} />
       <Player ref={playerRef} />
     </Canvas>
