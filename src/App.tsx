@@ -13,26 +13,39 @@ window.keyState = {};
 document.addEventListener("keydown", (e) => (window.keyState[e.key.toLowerCase()] = true));
 document.addEventListener("keyup", (e) => (window.keyState[e.key.toLowerCase()] = false));
 
+function PlayerCamera({ target }: { target: React.MutableRefObject<THREE.Mesh | null> }) {
+  const camRef = useRef<THREE.PerspectiveCamera>(null);
+
+  useFrame(() => {
+    if (camRef.current && target.current) {
+      const playerPos = target.current.position;
+      camRef.current.position.copy(new THREE.Vector3(playerPos.x, playerPos.y + 0.6, playerPos.z));
+      camRef.current.rotation.copy(target.current.rotation);
+    }
+  });
+
+  return <PerspectiveCamera ref={camRef} makeDefault fov={75} />;
+}
+
 const Player = forwardRef<THREE.Mesh>((_, ref) => {
   const meshRef = useRef<THREE.Mesh>(null);
   useImperativeHandle(ref, () => meshRef.current!);
 
   useFrame((_, delta) => {
     const speed = 5;
-    const dir = new THREE.Vector3();
-    if (window.keyState["w"]) dir.z -= 1;
-    if (window.keyState["s"]) dir.z += 1;
-    if (window.keyState["a"]) dir.x -= 1;
-    if (window.keyState["d"]) dir.x += 1;
-    dir.normalize().multiplyScalar(speed * delta);
-    if (meshRef.current) meshRef.current.position.add(dir);
+    const direction = new THREE.Vector3();
+    if (window.keyState["w"]) direction.z -= 1;
+    if (window.keyState["s"]) direction.z += 1;
+    if (window.keyState["a"]) direction.x -= 1;
+    if (window.keyState["d"]) direction.x += 1;
+    direction.normalize().multiplyScalar(speed * delta);
+    if (meshRef.current) {
+      meshRef.current.position.add(direction);
+    }
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0.5, 0]} castShadow>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="hotpink" />
-    </mesh>
+    <mesh ref={meshRef} visible={false} position={[0, 0.5, 0]} />
   );
 });
 
@@ -156,36 +169,12 @@ function Skybox() {
   return null;
 }
 
-function CameraFollow({ target }: { target: React.MutableRefObject<THREE.Object3D | null> }) {
-  const camRef = useRef<THREE.PerspectiveCamera>(null);
-  const zoomRef = useRef(8);
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      zoomRef.current += e.deltaY * 0.01;
-      zoomRef.current = Math.max(4, Math.min(20, zoomRef.current));
-    };
-    window.addEventListener("wheel", handleWheel);
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, []);
-
-  useFrame(() => {
-    if (camRef.current && target.current) {
-      const pos = target.current.position;
-      const zoom = zoomRef.current;
-      camRef.current.position.lerp(new THREE.Vector3(pos.x, pos.y + zoom, pos.z + zoom), 0.1);
-      camRef.current.lookAt(pos);
-    }
-  });
-  return <PerspectiveCamera ref={camRef} makeDefault fov={60} />;
-}
-
 function Scene() {
   const playerRef = useRef<THREE.Mesh>(null);
   return (
     <Canvas shadows>
       <Skybox />
-      <CameraFollow target={playerRef} />
+      <PlayerCamera target={playerRef} />
       <ambientLight intensity={0.3} />
       <directionalLight position={[5, 10, 5]} castShadow intensity={1} />
       <CityBox />
