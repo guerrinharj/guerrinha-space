@@ -63,8 +63,11 @@ function LampPost({ position }: { position: [number, number, number] }) {
 
 function Streets() {
   const asphalt = useLoader(THREE.TextureLoader, "/assets/asphalt.jpg");
+  const sidewalk = useLoader(THREE.TextureLoader, "/assets/sidewalk.jpg");
   asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping;
+  sidewalk.wrapS = sidewalk.wrapT = THREE.RepeatWrapping;
   asphalt.repeat.set(1, 1);
+  sidewalk.repeat.set(1, 1);
   const elements = [];
   for (let i = -10; i <= 10; i++) {
     elements.push(
@@ -77,6 +80,31 @@ function Streets() {
       <mesh key={`h-${i}`} position={[0, 0.01, i * 5]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[200, 4.5]} />
         <meshStandardMaterial map={asphalt} />
+      </mesh>
+    );
+    // Sidewalks
+    elements.push(
+      <mesh key={`h-sidewalk-top-${i}`} position={[0, 0.02, i * 5 + 2.6]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 1.5]} />
+        <meshStandardMaterial map={sidewalk} />
+      </mesh>
+    );
+    elements.push(
+      <mesh key={`h-sidewalk-bot-${i}`} position={[0, 0.02, i * 5 - 2.6]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 1.5]} />
+        <meshStandardMaterial map={sidewalk} />
+      </mesh>
+    );
+    elements.push(
+      <mesh key={`v-sidewalk-left-${i}`} position={[i * 5 + 2.6, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.5, 200]} />
+        <meshStandardMaterial map={sidewalk} />
+      </mesh>
+    );
+    elements.push(
+      <mesh key={`v-sidewalk-right-${i}`} position={[i * 5 - 2.6, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.5, 200]} />
+        <meshStandardMaterial map={sidewalk} />
       </mesh>
     );
   }
