@@ -1,6 +1,6 @@
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
-import { forwardRef, useRef, useImperativeHandle, useEffect } from "react";
+import { forwardRef, useRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 
 // Extend window object
@@ -12,7 +12,6 @@ declare global {
 
 window.keyState = {};
 
-// Track key events
 document.addEventListener("keydown", (e) => {
   window.keyState[e.key.toLowerCase()] = true;
 });
@@ -22,8 +21,6 @@ document.addEventListener("keyup", (e) => {
 
 const Player = forwardRef<THREE.Mesh>((_, ref) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const velocity = new THREE.Vector3();
-
   useImperativeHandle(ref, () => meshRef.current!);
 
   useFrame((_, delta) => {
@@ -35,8 +32,7 @@ const Player = forwardRef<THREE.Mesh>((_, ref) => {
     if (window.keyState["a"]) direction.x -= 1;
     if (window.keyState["d"]) direction.x += 1;
 
-    direction.normalize();
-    direction.multiplyScalar(speed * delta);
+    direction.normalize().multiplyScalar(speed * delta);
 
     if (meshRef.current) {
       meshRef.current.position.add(direction);
@@ -51,16 +47,25 @@ const Player = forwardRef<THREE.Mesh>((_, ref) => {
   );
 });
 
+function Building({ position, height }: { position: [number, number, number]; height: number }) {
+  const concrete = useLoader(THREE.TextureLoader, "/assets/concrete.jpg");
+
+  return (
+    <mesh position={[position[0], height / 2, position[2]]} castShadow receiveShadow>
+      <boxGeometry args={[3, height, 3]} />
+      <meshStandardMaterial map={concrete} />
+    </mesh>
+  );
+}
+
 function Buildings() {
   const buildings = [];
   for (let i = -10; i < 10; i++) {
     for (let j = -10; j < 10; j++) {
       if (Math.random() < 0.3) continue;
+      const height = 4 + Math.random() * 10;
       buildings.push(
-        <mesh key={`${i}-${j}`} position={[i * 5, 2, j * 5]} castShadow receiveShadow>
-          <boxGeometry args={[3, 4 + Math.random() * 5, 3]} />
-          <meshStandardMaterial color="#111" emissive="#2244ff" emissiveIntensity={0.4} />
-        </mesh>
+        <Building key={`${i}-${j}`} position={[i * 5, 0, j * 5]} height={height} />
       );
     }
   }
@@ -68,10 +73,14 @@ function Buildings() {
 }
 
 function Ground() {
+  const asphalt = useLoader(THREE.TextureLoader, "/assets/asphalt.jpg");
+  asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping;
+  asphalt.repeat.set(20, 20);
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[200, 200]} />
-      <meshStandardMaterial color="#222" />
+      <meshStandardMaterial map={asphalt} />
     </mesh>
   );
 }
