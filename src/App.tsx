@@ -62,25 +62,48 @@ function Buildings() {
   const buildings = [];
   for (let i = -10; i < 10; i++) {
     for (let j = -10; j < 10; j++) {
+      // Skip roads (every 5th row/col)
+      if (i % 5 === 0 || j % 5 === 0) continue;
       if (Math.random() < 0.3) continue;
       const height = 4 + Math.random() * 10;
       buildings.push(
-        <Building key={`${i}-${j}`} position={[i * 5, 0, j * 5]} height={height} />
+        <Building key={`${i}-${j}`} position={[i * 3, 0, j * 3]} height={height} />
       );
     }
   }
   return <>{buildings}</>;
 }
 
-function Ground() {
+function Streets() {
   const asphalt = useLoader(THREE.TextureLoader, "/assets/asphalt.jpg");
   asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping;
-  asphalt.repeat.set(20, 20);
+  asphalt.repeat.set(1, 1);
 
+  const streets = [];
+  for (let i = -10; i < 10; i++) {
+    // Vertical roads
+    streets.push(
+      <mesh key={`v-${i}`} position={[i * 3, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[2.5, 60]} />
+        <meshStandardMaterial map={asphalt} />
+      </mesh>
+    );
+    // Horizontal roads
+    streets.push(
+      <mesh key={`h-${i}`} position={[0, 0.01, i * 3]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[60, 2.5]} />
+        <meshStandardMaterial map={asphalt} />
+      </mesh>
+    );
+  }
+  return <>{streets}</>;
+}
+
+function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[200, 200]} />
-      <meshStandardMaterial map={asphalt} />
+      <meshStandardMaterial color="#111" />
     </mesh>
   );
 }
@@ -123,6 +146,7 @@ function Scene() {
       <CameraFollow target={playerRef} />
       <Lights />
       <Ground />
+      <Streets />
       <Buildings />
       <Player ref={playerRef} />
     </Canvas>
